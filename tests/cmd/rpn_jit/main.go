@@ -5,7 +5,7 @@ package main
 import (
 	"fmt"
 
-	rpn "github.com/xaionaro-go/rpn/implementations/jit"
+	rpn "github.com/xaionaro-go/rpn/implementations/compile"
 )
 
 func assertNoError(err error) {

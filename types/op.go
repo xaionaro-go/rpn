@@ -25,7 +25,7 @@ const (
 	// before last value, and put the result to back the stack.
 	OpMinus
 
-	// OpMinus means to multiply the last two value from the stack from the
+	// OpMultiply means to multiply the last two value from the stack from the
 	// before last value, and put the result to back the stack.
 	OpMultiply
 
@@ -33,7 +33,7 @@ const (
 	// the last value from the stack, and put the result to back the stack.
 	OpDivide
 
-	// OpDivide means to take a power of the last value from the stack with
+	// OpPower means to take a power of the last value from the stack with
 	// the base of the before-last value from the stack, and put the
 	// result to back the stack.
 	OpPower

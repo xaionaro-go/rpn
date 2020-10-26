@@ -58,11 +58,10 @@ func ParseValue(value string, symResolver SymbolResolver) (ValueLoader, error) {
 		v, err := strconv.ParseInt(value, 10, 64)
 		if err == nil {
 			return StaticValue(v), nil
-		} else {
-			v, err := strconv.ParseFloat(value, 64)
-			if err == nil {
-				return StaticValue(v), nil
-			}
+		}
+		f, err := strconv.ParseFloat(value, 64)
+		if err == nil {
+			return StaticValue(f), nil
 		}
 	}
 
