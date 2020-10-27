@@ -10,33 +10,9 @@ import (
 	compile "github.com/xaionaro-go/rpn/implementations/compile"
 	exprtree "github.com/xaionaro-go/rpn/implementations/exprtree"
 	tokenslice "github.com/xaionaro-go/rpn/implementations/tokenslice"
+	"github.com/xaionaro-go/rpn/tests"
 	"github.com/xaionaro-go/rpn/types"
 )
-
-type dummyResolver struct {
-	t *testing.T
-}
-
-func (r dummyResolver) Resolve(sym string) (types.ValueLoader, error) {
-	switch sym {
-	case "x0":
-		return types.FuncValue(func() float64 {
-			return 2
-		}), nil
-	case "x1":
-		return types.FuncValue(func() float64 {
-			return 3
-		}), nil
-	case "y":
-		return types.StaticValue(4), nil
-	case "z":
-		return types.FuncValue(func() float64 {
-			return 1
-		}), nil
-	}
-	require.FailNow(r.t, fmt.Sprintf("should not happen: '%s'", sym))
-	return nil, nil
-}
 
 var implementations = map[string]func(string, types.SymbolResolver) (types.Expr, error){
 	"calltree": func(s string, resolver types.SymbolResolver) (types.Expr, error) {
@@ -62,7 +38,7 @@ func TestExpr(t *testing.T) {
 				require.Equal(t, float64(15), expr.Eval(), fmt.Sprintf("%s: '%s'", implName, expr.String()))
 			})
 			t.Run("syms", func(t *testing.T) {
-				expr, err := impl("y x0 x1 + *", dummyResolver{t: t})
+				expr, err := impl("y x0 x1 + *", tests.DummyResolver{T: t})
 				require.NoError(t, err)
 				require.Equal(t, float64(20), expr.Eval(), fmt.Sprintf("%s: '%s'", implName, expr.String()))
 			})
@@ -77,7 +53,7 @@ func TestExpr(t *testing.T) {
 						}
 						t.Run(description, func(t *testing.T) {
 							rpn := strings.Repeat(sym+" ", 10000) + strings.Repeat("+ ", 9999)
-							expr, err := impl(rpn, &dummyResolver{t: t})
+							expr, err := impl(rpn, tests.DummyResolver{T: t})
 							require.NoError(t, err)
 							require.Equal(t, float64(10000), expr.Eval(), implName)
 						})
@@ -89,6 +65,8 @@ func TestExpr(t *testing.T) {
 
 	t.Run("full_test", func(t *testing.T) {
 		for _, args := range []string{
+			"h2 1",
+			"0x2 b11",
 			"0 1",
 			"0 x0",
 			"1 1",
@@ -96,21 +74,25 @@ func TestExpr(t *testing.T) {
 			"x0 1",
 			"x0 y",
 		} {
-			for _, op := range []string{"+", "-", "*", "/", "^", "if"} {
-				rpn := "0x1 " + args + " " + op + " +"
-				resultMap := map[string]float64{}
-				for implName, impl := range implementations {
-					if (op == "^" || op == "if") && implName == "compile" {
-						continue
+			for _, memoization := range []bool{false, true} {
+				for _, op := range []string{"+", "-", "*", "/", "^", "if"} {
+					rpn := "0x1 " + args + " " + op + " +"
+					resultMap := map[string]float64{}
+					for implName, impl := range implementations {
+						if (op == "^" || op == "if") && implName == "compile" {
+							continue
+						}
+						expr, err := impl(rpn, tests.DummyResolver{T: t})
+						require.NoError(t, err, fmt.Sprintf("%s: '%s'", implName, rpn))
+						expr.EnableMemoization(memoization)
+						require.NotEmpty(t, expr.String())
+						resultMap[implName] = expr.Eval()
 					}
-					expr, err := impl(rpn, dummyResolver{t: t})
-					require.NoError(t, err, fmt.Sprintf("%s: '%s'", implName, rpn))
-					resultMap[implName] = expr.Eval()
-				}
 
-				reference := resultMap["calltree"]
-				for _, value := range resultMap {
-					require.Equal(t, reference, value, fmt.Sprintf("'%s' -> %v", rpn, resultMap))
+					reference := resultMap["calltree"]
+					for _, value := range resultMap {
+						require.Equal(t, reference, value, fmt.Sprintf("'%s' -> %v", rpn, resultMap))
+					}
 				}
 			}
 		}
@@ -157,7 +139,7 @@ func BenchmarkExpr_Eval(b *testing.B) {
 				})
 			})
 			b.Run("variable", func(b *testing.B) {
-				expr, _ := impl("z x0 x1 + *", dummyResolver{t: nil})
+				expr, _ := impl("z x0 x1 + *", tests.DummyResolver{T: nil})
 				eval := expr.Eval
 				expr.EnableMemoization(true)
 				b.Run("with_cache", func(b *testing.B) {
@@ -187,7 +169,7 @@ func BenchmarkExpr_Eval(b *testing.B) {
 						}
 						b.Run(description, func(b *testing.B) {
 							rpn := strings.Repeat(sym+" ", 10000) + strings.Repeat("+ ", 9999)
-							expr, _ := impl(rpn, &dummyResolver{t: nil})
+							expr, _ := impl(rpn, tests.DummyResolver{T: nil})
 							eval := expr.Eval
 							expr.EnableMemoization(false)
 							b.Run("without_cache", func(b *testing.B) {

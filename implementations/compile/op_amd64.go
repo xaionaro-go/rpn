@@ -1,7 +1,6 @@
 package rpn
 
 import (
-	"math"
 	"reflect"
 	"unsafe"
 
@@ -11,34 +10,6 @@ import (
 	"github.com/twitchyliquid64/golang-asm/obj/x86"
 	"github.com/xaionaro-go/rpn/types"
 )
-
-func noop(builder *asm.Builder) *obj.Prog {
-	prog := builder.NewProg()
-	prog.As = x86.ANOPL
-	prog.From.Type = obj.TYPE_REG
-	prog.From.Reg = x86.REG_AX
-	return prog
-}
-
-func fAddDPImmediate(builder *asm.Builder, in float64) *obj.Prog {
-	prog := builder.NewProg()
-	prog.As = x86.AFADDDP
-	prog.To.Type = obj.TYPE_REG
-	prog.To.Reg = x86.REG_AL
-	prog.From.Type = obj.TYPE_CONST
-	prog.From.Offset = int64(math.Float64bits(in))
-	return prog
-}
-
-func fMovDPImmediate(builder *asm.Builder, reg int16, in float64) *obj.Prog {
-	prog := builder.NewProg()
-	prog.As = x86.AFMOVDP
-	prog.To.Type = obj.TYPE_REG
-	prog.To.Reg = reg
-	prog.From.Type = obj.TYPE_CONST
-	prog.From.Offset = int64(math.Float64bits(in))
-	return prog
-}
 
 func addQImmediateConst(builder *asm.Builder, reg int16, in int64) *obj.Prog {
 	prog := builder.NewProg()
@@ -80,16 +51,6 @@ func movQImmediate(builder *asm.Builder, regTo, regFrom int16) *obj.Prog {
 	return prog
 }
 
-func movQ(builder *asm.Builder, regTo, regFrom int16) *obj.Prog {
-	prog := builder.NewProg()
-	prog.As = x86.AMOVQ
-	prog.To.Type = obj.TYPE_MEM
-	prog.To.Reg = regTo
-	prog.From.Type = obj.TYPE_MEM
-	prog.From.Reg = regFrom
-	return prog
-}
-
 func load(builder *asm.Builder, regTo, regFrom int16) *obj.Prog {
 	prog := builder.NewProg()
 	prog.As = x86.AMOVQ
@@ -127,56 +88,6 @@ func storeSDOffset(builder *asm.Builder, regTo, regFrom int16, offset int64) *ob
 	prog.To.Type = obj.TYPE_MEM
 	prog.To.Reg = regTo
 	prog.To.Offset = offset
-	prog.From.Type = obj.TYPE_REG
-	prog.From.Reg = regFrom
-	return prog
-}
-
-func addQ(builder *asm.Builder, regTo, regFrom int16) *obj.Prog {
-	prog := builder.NewProg()
-	prog.As = x86.AADDQ
-	prog.To.Type = obj.TYPE_REG
-	prog.To.Reg = regTo
-	prog.From.Type = obj.TYPE_REG
-	prog.From.Reg = regFrom
-	return prog
-}
-
-func fAddDP(builder *asm.Builder, regTo, regFrom int16) *obj.Prog {
-	prog := builder.NewProg()
-	prog.As = x86.AFADDDP
-	prog.To.Type = obj.TYPE_REG
-	prog.To.Reg = regTo
-	prog.From.Type = obj.TYPE_REG
-	prog.From.Reg = regFrom
-	return prog
-}
-
-func fSubDP(builder *asm.Builder, regTo, regFrom int16) *obj.Prog {
-	prog := builder.NewProg()
-	prog.As = x86.AFSUBDP
-	prog.To.Type = obj.TYPE_REG
-	prog.To.Reg = regTo
-	prog.From.Type = obj.TYPE_REG
-	prog.From.Reg = regFrom
-	return prog
-}
-
-func fMulDP(builder *asm.Builder, regFrom, regTo int16) *obj.Prog {
-	prog := builder.NewProg()
-	prog.As = x86.AFMULDP
-	prog.To.Type = obj.TYPE_REG
-	prog.To.Reg = regTo
-	prog.From.Type = obj.TYPE_REG
-	prog.From.Reg = regFrom
-	return prog
-}
-
-func fDivDP(builder *asm.Builder, regFrom, regTo int16) *obj.Prog {
-	prog := builder.NewProg()
-	prog.As = x86.AFDIVDP
-	prog.To.Type = obj.TYPE_REG
-	prog.To.Reg = regTo
 	prog.From.Type = obj.TYPE_REG
 	prog.From.Reg = regFrom
 	return prog
