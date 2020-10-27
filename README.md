@@ -60,9 +60,6 @@ BenchmarkExpr_Eval/calltree/large_expression/variable/without_cache-8      	   5
 PASS
 ok  	github.com/xaionaro-go/rpn/tests	149.776s
 ```
-If compare pessimistic case `calltree/with_syms_cache/without_cache` with
-ideal function-based reference benchmark `idealFuncs` then the overhead is
-pretty small (according to the benchmark above).
 
 The default approach is also the `tokenslice`, so if you will import
 `github.com/xaionaro-go/rpn` then if you will use it.  
