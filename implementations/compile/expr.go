@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/xaionaro-go/rpn/internal"
 	"github.com/xaionaro-go/rpn/types"
 )
 
@@ -32,17 +33,8 @@ type Expr struct {
 // the symbol (of the expression) has. Symbol -- is anything except for
 // operations signs.
 type Symbol struct {
-	StaticValue types.NullFloat64
-	ValueLoader types.ValueLoader
-	Name        string
-}
-
-// Load returns the current value of the symbol
-func (sym *Symbol) Load() float64 {
-	if sym.StaticValue.Valid {
-		return sym.StaticValue.Float64
-	}
-	return sym.ValueLoader.Load()
+	internal.ParsedValue
+	Name string
 }
 
 // Eval implements types.Expr
@@ -95,19 +87,16 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 		}
 		ops = append(ops, types.OpFetch)
 
-		valueLoader, err := types.ParseValue(part, symResolver)
+		parsedValue, err := internal.ParseValue(part, symResolver)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse value '%s': %w", part, err)
 		}
 
 		sym := Symbol{
-			ValueLoader: valueLoader,
+			ParsedValue: parsedValue,
 			Name:        part,
 		}
-		if f, ok := valueLoader.(types.StaticValue); ok {
-			sym.StaticValue.Valid = true
-			sym.StaticValue.Float64 = f.Load()
-		} else {
+		if !parsedValue.ConstValue.Valid {
 			expr.nonStaticValueIndices = append(expr.nonStaticValueIndices, len(expr.Syms))
 		}
 		expr.Syms = append(expr.Syms, sym)
@@ -117,8 +106,8 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 	expr.values = make([]float64, len(expr.Syms))
 
 	for idx, sym := range expr.Syms {
-		if sym.StaticValue.Valid {
-			expr.values[idx] = sym.StaticValue.Float64
+		if sym.ConstValue.Valid {
+			expr.values[idx] = sym.ConstValue.Float64
 		}
 	}
 

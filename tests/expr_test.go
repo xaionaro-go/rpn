@@ -116,70 +116,37 @@ func BenchmarkExpr_Eval(b *testing.B) {
 		}
 	})
 
-	for implName, impl := range implementations {
-		b.Run(implName, func(b *testing.B) {
-			b.Run("const", func(b *testing.B) {
-				expr, _ := impl("b10 3.5 4 + *", nil)
-				eval := expr.Eval
-				expr.EnableMemoization(true)
-				b.Run("with_cache", func(b *testing.B) {
-					b.ReportAllocs()
-					b.ResetTimer()
-					for i := 0; i < b.N; i++ {
-						eval()
-					}
-				})
-				expr.EnableMemoization(false)
-				b.Run("without_cache", func(b *testing.B) {
-					b.ReportAllocs()
-					b.ResetTimer()
-					for i := 0; i < b.N; i++ {
-						eval()
-					}
-				})
-			})
-			b.Run("variable", func(b *testing.B) {
-				expr, _ := impl("z x0 x1 + *", tests.DummyResolver{T: nil})
-				eval := expr.Eval
-				expr.EnableMemoization(true)
-				b.Run("with_cache", func(b *testing.B) {
-					b.ReportAllocs()
-					b.ResetTimer()
-					for i := 0; i < b.N; i++ {
-						eval()
-					}
-				})
-				expr.EnableMemoization(false)
-				b.Run("without_cache", func(b *testing.B) {
-					b.ReportAllocs()
-					b.ResetTimer()
-					for i := 0; i < b.N; i++ {
-						eval()
-					}
-				})
-			})
-			if implName != "compile" {
-				b.Run("large_expression", func(b *testing.B) {
-					for _, sym := range []string{"1", "z"} {
-						var description string
-						if sym == "1" {
-							description = "const"
-						} else {
-							description = "variable"
+	for _, enableMemoization := range []bool{true, false} {
+		b.Run(fmt.Sprintf("cache_%v", enableMemoization), func(b *testing.B) {
+			for _, exprName := range []string{"const", "variable", "tons_of_variables"} {
+				b.Run(exprName, func(b *testing.B) {
+					exprString := func() string {
+						switch exprName {
+						case "const":
+							return "b10 3.5 4 + *"
+						case "variable":
+							return "z x0 x1 + *"
+						case "tons_of_variables":
+							return strings.Repeat("z ", 10000) + strings.Repeat("+ ", 9999)
 						}
-						b.Run(description, func(b *testing.B) {
-							rpn := strings.Repeat(sym+" ", 10000) + strings.Repeat("+ ", 9999)
-							expr, _ := impl(rpn, tests.DummyResolver{T: nil})
-							eval := expr.Eval
-							expr.EnableMemoization(false)
-							b.Run("without_cache", func(b *testing.B) {
-								b.SetBytes(10000)
-								b.ReportAllocs()
-								b.ResetTimer()
-								for i := 0; i < b.N; i++ {
-									eval()
-								}
-							})
+						panic("should not happen")
+					}()
+					for implName, impl := range implementations {
+						if exprName == "tons_of_variables" && implName == "compile" {
+							continue
+						}
+						expr, err := impl(exprString, tests.DummyResolver{})
+						if err != nil {
+							panic(err)
+						}
+						eval := expr.Eval
+						expr.EnableMemoization(enableMemoization)
+						b.Run(implName, func(b *testing.B) {
+							b.ReportAllocs()
+							b.ResetTimer()
+							for i := 0; i < b.N; i++ {
+								eval()
+							}
 						})
 					}
 				})

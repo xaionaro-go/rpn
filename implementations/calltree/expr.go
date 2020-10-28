@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/xaionaro-go/rpn/internal"
 	"github.com/xaionaro-go/rpn/types"
 )
 
@@ -39,23 +40,18 @@ func (expr *Expr) Eval() float64 {
 	return r
 }
 
-type callNode struct {
-	ConstValue types.NullFloat64
-	FuncValue  types.FuncValue
-}
+type stack []*internal.ParsedValue
 
-type stack []*callNode
-
-func (s *stack) Push(node callNode) *callNode {
+func (s *stack) Push(node internal.ParsedValue) *internal.ParsedValue {
 	*s = append(*s, &node)
 	return s.First()
 }
 
-func (s *stack) First() *callNode {
+func (s *stack) First() *internal.ParsedValue {
 	return (*s)[len(*s)-1]
 }
 
-func (s *stack) Pop() *callNode {
+func (s *stack) Pop() *internal.ParsedValue {
 	r := s.First()
 	*s = (*s)[:len(*s)-1]
 	return r
@@ -79,22 +75,11 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 		op := types.ParseOp(part)
 
 		if op == types.OpUndefined {
-			valueLoader, err := types.ParseValue(part, symResolver)
+			parsedValue, err := internal.ParseValue(part, symResolver)
 			if err != nil {
 				return nil, fmt.Errorf("unable to parse value '%s': %w", part, err)
 			}
-			if staticValue, ok := valueLoader.(types.StaticValue); ok {
-				stack.Push(callNode{
-					ConstValue: types.NullFloat64{
-						Valid:   true,
-						Float64: staticValue.Load(),
-					},
-				})
-				continue
-			}
-			stack.Push(callNode{
-				FuncValue: valueLoader.Load,
-			})
+			stack.Push(parsedValue)
 			continue
 		}
 
@@ -108,26 +93,26 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 		case types.OpPlus:
 			switch {
 			case lhs.ConstValue.Valid && rhs.ConstValue.Valid:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					ConstValue: types.NullFloat64{
 						Valid:   true,
 						Float64: lhs.ConstValue.Float64 + rhs.ConstValue.Float64,
 					},
 				})
 			case rhs.ConstValue.Valid:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					FuncValue: func() float64 {
 						return lhs.FuncValue() + rhs.ConstValue.Float64
 					},
 				})
 			case lhs.ConstValue.Valid:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					FuncValue: func() float64 {
 						return lhs.ConstValue.Float64 + rhs.FuncValue()
 					},
 				})
 			default:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					FuncValue: func() float64 {
 						return lhs.FuncValue() + rhs.FuncValue()
 					},
@@ -136,26 +121,26 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 		case types.OpMinus:
 			switch {
 			case lhs.ConstValue.Valid && rhs.ConstValue.Valid:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					ConstValue: types.NullFloat64{
 						Valid:   true,
 						Float64: lhs.ConstValue.Float64 - rhs.ConstValue.Float64,
 					},
 				})
 			case rhs.ConstValue.Valid:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					FuncValue: func() float64 {
 						return lhs.FuncValue() - rhs.ConstValue.Float64
 					},
 				})
 			case lhs.ConstValue.Valid:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					FuncValue: func() float64 {
 						return lhs.ConstValue.Float64 - rhs.FuncValue()
 					},
 				})
 			default:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					FuncValue: func() float64 {
 						return lhs.FuncValue() - rhs.FuncValue()
 					},
@@ -164,26 +149,26 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 		case types.OpMultiply:
 			switch {
 			case lhs.ConstValue.Valid && rhs.ConstValue.Valid:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					ConstValue: types.NullFloat64{
 						Valid:   true,
 						Float64: lhs.ConstValue.Float64 * rhs.ConstValue.Float64,
 					},
 				})
 			case rhs.ConstValue.Valid:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					FuncValue: func() float64 {
 						return lhs.FuncValue() * rhs.ConstValue.Float64
 					},
 				})
 			case lhs.ConstValue.Valid:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					FuncValue: func() float64 {
 						return lhs.ConstValue.Float64 * rhs.FuncValue()
 					},
 				})
 			default:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					FuncValue: func() float64 {
 						return lhs.FuncValue() * rhs.FuncValue()
 					},
@@ -192,26 +177,26 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 		case types.OpDivide:
 			switch {
 			case lhs.ConstValue.Valid && rhs.ConstValue.Valid:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					ConstValue: types.NullFloat64{
 						Valid:   true,
 						Float64: lhs.ConstValue.Float64 / rhs.ConstValue.Float64,
 					},
 				})
 			case rhs.ConstValue.Valid:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					FuncValue: func() float64 {
 						return lhs.FuncValue() / rhs.ConstValue.Float64
 					},
 				})
 			case lhs.ConstValue.Valid:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					FuncValue: func() float64 {
 						return lhs.ConstValue.Float64 / rhs.FuncValue()
 					},
 				})
 			default:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					FuncValue: func() float64 {
 						return lhs.FuncValue() / rhs.FuncValue()
 					},
@@ -220,26 +205,26 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 		case types.OpPower:
 			switch {
 			case lhs.ConstValue.Valid && rhs.ConstValue.Valid:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					ConstValue: types.NullFloat64{
 						Valid:   true,
 						Float64: math.Pow(lhs.ConstValue.Float64, rhs.ConstValue.Float64),
 					},
 				})
 			case rhs.ConstValue.Valid:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					FuncValue: func() float64 {
 						return math.Pow(lhs.FuncValue(), rhs.ConstValue.Float64)
 					},
 				})
 			case lhs.ConstValue.Valid:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					FuncValue: func() float64 {
 						return math.Pow(lhs.ConstValue.Float64, rhs.FuncValue())
 					},
 				})
 			default:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					FuncValue: func() float64 {
 						return math.Pow(lhs.FuncValue(), rhs.FuncValue())
 					},
@@ -252,14 +237,14 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 				if lhs.ConstValue.Float64 > 0 {
 					v = rhs.ConstValue.Float64
 				}
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					ConstValue: types.NullFloat64{
 						Valid:   true,
 						Float64: v,
 					},
 				})
 			case rhs.ConstValue.Valid:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					FuncValue: func() float64 {
 						if lhs.FuncValue() > 0 {
 							return rhs.ConstValue.Float64
@@ -269,13 +254,13 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 				})
 			case lhs.ConstValue.Valid:
 				if lhs.ConstValue.Float64 > 0 {
-					stack.Push(callNode{
+					stack.Push(internal.ParsedValue{
 						FuncValue: func() float64 {
 							return rhs.FuncValue()
 						},
 					})
 				} else {
-					stack.Push(callNode{
+					stack.Push(internal.ParsedValue{
 						ConstValue: types.NullFloat64{
 							Float64: 0,
 							Valid:   true,
@@ -283,7 +268,7 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 					})
 				}
 			default:
-				stack.Push(callNode{
+				stack.Push(internal.ParsedValue{
 					FuncValue: func() float64 {
 						if lhs.FuncValue() > 0 {
 							return rhs.FuncValue()

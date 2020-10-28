@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/xaionaro-go/rpn/internal"
 	"github.com/xaionaro-go/rpn/types"
 )
 
@@ -28,17 +29,8 @@ type Expr struct {
 // the symbol (of the expression) has. Symbol -- is anything except for
 // operations signs.
 type Symbol struct {
-	StaticValue types.NullFloat64
-	ValueLoader types.ValueLoader
-	Name        string
-}
-
-// Load returns the current value of the symbol
-func (sym *Symbol) Load() float64 {
-	if sym.StaticValue.Valid {
-		return sym.StaticValue.Float64
-	}
-	return sym.ValueLoader.Load()
+	internal.ParsedValue
+	Name string
 }
 
 // Eval implements types.Expr
@@ -113,7 +105,7 @@ func (expr *Expr) eval() float64 {
 		stackLen++
 	}
 	if stackLen == 0 {
-		return expr.Syms[0].StaticValue.Float64
+		return expr.Syms[0].ConstValue.Float64
 	}
 
 	return stack[0]
@@ -134,18 +126,14 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 		op := types.ParseOp(part)
 
 		if op == types.OpUndefined {
-			valueLoader, err := types.ParseValue(part, symResolver)
+			parsedValue, err := internal.ParseValue(part, symResolver)
 			if err != nil {
 				return nil, fmt.Errorf("unable to parse value '%s': %w", part, err)
 			}
 
 			sym := Symbol{
-				ValueLoader: valueLoader,
 				Name:        part,
-			}
-			if f, ok := valueLoader.(types.StaticValue); ok {
-				sym.StaticValue.Valid = true
-				sym.StaticValue.Float64 = f.Load()
+				ParsedValue: parsedValue,
 			}
 			expr.Syms = append(expr.Syms, sym)
 			continue
@@ -153,11 +141,11 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 
 		lhsSym := expr.Syms[len(expr.Syms)-2]
 		rhsSym := expr.Syms[len(expr.Syms)-1]
-		if !lhsSym.StaticValue.Valid || !rhsSym.StaticValue.Valid {
+		if !lhsSym.ConstValue.Valid || !rhsSym.ConstValue.Valid {
 			expr.Ops = append(expr.Ops, op)
 			continue
 		}
-		lhs, rhs := lhsSym.StaticValue.Float64, rhsSym.StaticValue.Float64
+		lhs, rhs := lhsSym.ConstValue.Float64, rhsSym.ConstValue.Float64
 		var r float64
 		switch op {
 		case types.OpPlus:
@@ -178,9 +166,11 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 			panic("should not happened")
 		}
 		expr.Syms[len(expr.Syms)-2] = Symbol{
-			StaticValue: types.NullFloat64{
-				Valid:   true,
-				Float64: r,
+			ParsedValue: internal.ParsedValue{
+				ConstValue: types.NullFloat64{
+					Valid:   true,
+					Float64: r,
+				},
 			},
 			Name: "( " + lhsSym.Name + " " + op.String() + " " + rhsSym.Name + " )",
 		}

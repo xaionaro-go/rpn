@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/xaionaro-go/rpn/internal"
 	"github.com/xaionaro-go/rpn/types"
 )
 
@@ -16,11 +17,10 @@ var (
 // expressions, so you may access any sub-tree if you need it. This is
 // the slowest implementation from this collection.
 type Expr struct {
+	internal.ParsedValue
 	LHS           *Expr
 	RHS           *Expr
 	Symbol        string
-	ValueLoader   types.ValueLoader
-	StaticValue   types.NullFloat64
 	ResultCache   types.NullFloat64
 	IsUpdateCache bool
 	Op            types.Op
@@ -33,10 +33,10 @@ func (expr *Expr) Eval() float64 {
 	}
 	var r float64
 	if expr.Op == types.OpFetch {
-		if expr.StaticValue.Valid {
-			r = expr.StaticValue.Float64
+		if expr.ConstValue.Valid {
+			r = expr.ConstValue.Float64
 		} else {
-			r = expr.ValueLoader.Load()
+			r = expr.FuncValue()
 		}
 	} else {
 		lhs := expr.LHS.Eval()
@@ -116,20 +116,16 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 			continue
 		}
 
-		valueLoader, err := types.ParseValue(part, symResolver)
+		parsedValue, err := internal.ParseValue(part, symResolver)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse value '%s': %w", part, err)
 		}
 
-		expr := stack.Push(Expr{
+		stack.Push(Expr{
 			Symbol:      part,
-			ValueLoader: valueLoader,
+			ParsedValue: parsedValue,
 			Op:          types.OpFetch,
 		})
-		if resolver, ok := valueLoader.(types.StaticValue); ok {
-			expr.StaticValue.Valid = true
-			expr.StaticValue.Float64 = resolver.Load()
-		}
 	}
 	if len(stack) == 0 {
 		return nil, fmt.Errorf("empty expression: '%s'", expression)
