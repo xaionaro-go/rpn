@@ -73,44 +73,90 @@ The output is:
 
 # Benchmark
 
-4 approaches were implemented, and the fastest is `tokenslice`:
+There are 5 approaches implemented (`callslice`, `calltree`, `exprtree`, `compile` and `tokenslice`):
 
 ```
 goos: linux
 goarch: amd64
 pkg: github.com/xaionaro-go/rpn/tests
-BenchmarkExpr_Eval/ideal-4                                              1000000000               1.16 ns/op
-BenchmarkExpr_Eval/idealFuncs-4                                         1000000000               4.60 ns/op
-BenchmarkExpr_Eval/cache_true/const/compile-4                           1000000000               4.01 ns/op            0 B/op          0 allocs/op
-BenchmarkExpr_Eval/cache_true/const/tokenslice-4                        1000000000               3.99 ns/op            0 B/op        0 allocs/op
-BenchmarkExpr_Eval/cache_true/const/calltree-4                          1000000000               3.99 ns/op            0 B/op        0 allocs/op
-BenchmarkExpr_Eval/cache_true/const/exprtree-4                          1000000000               3.76 ns/op            0 B/op        0 allocs/op
-BenchmarkExpr_Eval/cache_true/variable/calltree-4                       1000000000               4.00 ns/op            0 B/op        0 allocs/op
-BenchmarkExpr_Eval/cache_true/variable/exprtree-4                       1000000000               3.77 ns/op            0 B/op        0 allocs/op
-BenchmarkExpr_Eval/cache_true/variable/compile-4                        1000000000               4.00 ns/op            0 B/op        0 allocs/op
-BenchmarkExpr_Eval/cache_true/variable/tokenslice-4                     1000000000               3.99 ns/op            0 B/op        0 allocs/op
-BenchmarkExpr_Eval/cache_true/tons_of_variables/tokenslice-4            1000000000               4.00 ns/op            0 B/op         0 allocs/op
-BenchmarkExpr_Eval/cache_true/tons_of_variables/calltree-4              1000000000               4.05 ns/op            0 B/op         0 allocs/op
-BenchmarkExpr_Eval/cache_true/tons_of_variables/exprtree-4              1000000000               3.78 ns/op            0 B/op         0 allocs/op
-BenchmarkExpr_Eval/cache_false/const/calltree-4                         1000000000               5.25 ns/op            0 B/op         0 allocs/op
-BenchmarkExpr_Eval/cache_false/const/exprtree-4                         369319456               16.2 ns/op             0 B/op         0 allocs/op
-BenchmarkExpr_Eval/cache_false/const/compile-4                          449603368               13.4 ns/op             0 B/op         0 allocs/op
-BenchmarkExpr_Eval/cache_false/const/tokenslice-4                       810901628                7.41 ns/op            0 B/op         0 allocs/op
-BenchmarkExpr_Eval/cache_false/variable/calltree-4                      489537325               12.6 ns/op             0 B/op         0 allocs/op
-BenchmarkExpr_Eval/cache_false/variable/exprtree-4                      258942452               22.8 ns/op             0 B/op         0 allocs/op
-BenchmarkExpr_Eval/cache_false/variable/compile-4                       232903180               24.8 ns/op             0 B/op         0 allocs/op
-BenchmarkExpr_Eval/cache_false/variable/tokenslice-4                    309449833               19.4 ns/op             0 B/op         0 allocs/op
-BenchmarkExpr_Eval/cache_false/tons_of_variables/calltree-4                65892             90933 ns/op               0 B/op         0 allocs/op
-BenchmarkExpr_Eval/cache_false/tons_of_variables/exprtree-4                59335            100775 ns/op               0 B/op         0 allocs/op
-BenchmarkExpr_Eval/cache_false/tons_of_variables/tokenslice-4             136764             43815 ns/op               0 B/op         0 allocs/op
+BenchmarkExpr_Eval/cache_true/3_constant_values/callslice-4             1000000000               4.00 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/3_constant_values/calltree-4              1000000000               4.00 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/3_constant_values/exprtree-4              1000000000               3.72 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/3_constant_values/compile-4               1000000000               4.06 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/3_constant_values/tokenslice-4            1000000000               3.99 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/3_constant_values/default-4               1000000000               4.01 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/3_variables/default-4                     1000000000               3.99 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/3_variables/callslice-4                   1000000000               4.00 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/3_variables/calltree-4                    1000000000               4.00 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/3_variables/exprtree-4                    1000000000               3.73 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/3_variables/compile-4                     1000000000               4.08 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/3_variables/tokenslice-4                  1000000000               3.99 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/10_variables/callslice-4                  1000000000               4.02 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/10_variables/calltree-4                   1000000000               4.01 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/10_variables/exprtree-4                   1000000000               3.72 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/10_variables/compile-4                    1000000000               4.05 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/10_variables/tokenslice-4                 1000000000               4.05 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/10_variables/default-4                    1000000000               4.00 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/100_variables/callslice-4                 1000000000               4.03 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/100_variables/calltree-4                  1000000000               4.01 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/100_variables/exprtree-4                  1000000000               3.73 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/100_variables/compile-4                   1000000000               4.06 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/100_variables/tokenslice-4                1000000000               4.00 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/100_variables/default-4                   1000000000               4.00 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/1000_variables/exprtree-4                 1000000000               3.73 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/1000_variables/compile-4                  1000000000               4.04 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/1000_variables/tokenslice-4               1000000000               4.00 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/1000_variables/default-4                  1000000000               3.99 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/1000_variables/callslice-4                1000000000               4.00 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/1000_variables/calltree-4                 1000000000               4.00 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/10000_variables/calltree-4                1000000000               4.06 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/10000_variables/exprtree-4                1000000000               3.72 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/10000_variables/compile-4                 1000000000               4.05 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/10000_variables/tokenslice-4              1000000000               4.00 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/10000_variables/default-4                 1000000000               3.99 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_true/10000_variables/callslice-4               1000000000               4.01 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/3_constant_values/callslice-4            579179106               10.4 ns/op             0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/3_constant_values/calltree-4             1000000000               5.51 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/3_constant_values/exprtree-4             376218780               15.9 ns/op             0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/3_constant_values/compile-4              451313248               13.3 ns/op             0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/3_constant_values/tokenslice-4           285631948               21.0 ns/op             0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/3_constant_values/default-4              1000000000               5.52 ns/op            0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/3_variables/callslice-4                  331783568               18.1 ns/op             0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/3_variables/calltree-4                   495298591               12.1 ns/op             0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/3_variables/exprtree-4                   287268447               20.9 ns/op             0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/3_variables/compile-4                    256272177               23.3 ns/op             0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/3_variables/tokenslice-4                 229319173               26.4 ns/op             0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/3_variables/default-4                    494261940               12.1 ns/op             0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/10_variables/callslice-4                 100000000               52.9 ns/op             0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/10_variables/calltree-4                  122009749               49.0 ns/op             0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/10_variables/exprtree-4                  75151573                73.8 ns/op             0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/10_variables/compile-4                   90459986                66.6 ns/op             0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/10_variables/tokenslice-4                69911527                85.7 ns/op             0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/10_variables/default-4                   121929210               48.9 ns/op             0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/100_variables/calltree-4                 10963188               548 ns/op               0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/100_variables/exprtree-4                  7401158               808 ns/op               0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/100_variables/compile-4                   8893951               678 ns/op               0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/100_variables/tokenslice-4                6937212               865 ns/op               0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/100_variables/default-4                  12024320               491 ns/op               0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/100_variables/callslice-4                11103020               529 ns/op               0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/1000_variables/callslice-4                1000000              5396 ns/op               0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/1000_variables/calltree-4                  885706              6453 ns/op               0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/1000_variables/exprtree-4                  650157              9065 ns/op               0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/1000_variables/compile-4                   876373              6829 ns/op               0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/1000_variables/tokenslice-4                694416              8591 ns/op               0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/1000_variables/default-4                  1000000              5400 ns/op               0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/10000_variables/compile-4                   84819             70461 ns/op               0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/10000_variables/tokenslice-4                68793             86768 ns/op               0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/10000_variables/default-4                  104406             57272 ns/op               0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/10000_variables/callslice-4                104284             57153 ns/op               0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/10000_variables/calltree-4                  77030             77918 ns/op               0 B/op          0 allocs/op
+BenchmarkExpr_Eval/cache_false/10000_variables/exprtree-4                  60081             99462 ns/op               0 B/op          0 allocs/op
 PASS
-ok      github.com/xaionaro-go/rpn/tests        134.308s
+ok      github.com/xaionaro-go/rpn/tests        407.949s
 ```
 
-The default approach is also the `tokenslice`, so if you will import
-`github.com/xaionaro-go/rpn` then if you will use it.  
+The default approach for small expressions is `calltree`, and
+for larger expression is `callslice`, so if you will import
+`github.com/xaionaro-go/rpn` then if you will use them.
 
-Approach `compile` has potential if the assembly code will be re-written by somebody who
-is good at optimizing on an amd64 assembly language. Right now is more like
-an unsafe proof of concept.
 

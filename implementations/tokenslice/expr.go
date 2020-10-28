@@ -2,7 +2,6 @@ package rpn
 
 import (
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/xaionaro-go/rpn/internal"
@@ -12,6 +11,10 @@ import (
 var (
 	_ types.Expr = &Expr{}
 )
+
+func init() {
+	//panic("This package should not be used, it works wrong")
+}
 
 // Expr is an implementation of types.Expr which tries to present the
 // expression in a flat format (as a slice) to avoid extra performance
@@ -53,49 +56,25 @@ func (expr *Expr) Eval() float64 {
 }
 
 func (expr *Expr) eval() float64 {
-	symIdx := len(expr.Syms) - 1
+	symIdx := 0
 	stackLen := 0
 	syms := expr.Syms
 	stack := expr.evalStack
 	ops := expr.Ops
 	for _, op := range ops {
-		var lhs, rhs float64
-		switch stackLen {
-		case 0:
-			rhs = syms[symIdx].Load()
-			lhs = syms[symIdx-1].Load()
-			symIdx -= 2
-		case 1:
-			rhs = syms[symIdx].Load()
-			symIdx--
-			stackLen--
-			lhs = stack[stackLen]
-		default:
-			stackLen--
-			rhs = stack[stackLen]
-			stackLen--
-			lhs = stack[stackLen]
+		if op == types.OpFetch {
+			stack[stackLen] = syms[symIdx].Load()
+			symIdx++
+			stackLen++
+			continue
 		}
 
-		r := float64(0)
-		switch op {
-		case types.OpPlus:
-			r = lhs + rhs
-		case types.OpMinus:
-			r = lhs - rhs
-		case types.OpMultiply:
-			r = lhs * rhs
-		case types.OpDivide:
-			r = lhs / rhs
-		case types.OpPower:
-			r = math.Pow(lhs, rhs)
-		case types.OpIf:
-			if lhs > 0 {
-				r = rhs
-			}
-		default:
-			panic("should not happened")
-		}
+		stackLen--
+		rhs := stack[stackLen]
+		stackLen--
+		lhs := stack[stackLen]
+
+		r := op.Eval(lhs, rhs)
 
 		if symIdx < 0 {
 			return r
@@ -136,45 +115,15 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 				ParsedValue: parsedValue,
 			}
 			expr.Syms = append(expr.Syms, sym)
+			expr.Ops = append(expr.Ops, types.OpFetch)
 			continue
 		}
 
-		lhsSym := expr.Syms[len(expr.Syms)-2]
-		rhsSym := expr.Syms[len(expr.Syms)-1]
-		if !lhsSym.ConstValue.Valid || !rhsSym.ConstValue.Valid {
-			expr.Ops = append(expr.Ops, op)
-			continue
+		if len(expr.Syms) < 2 {
+			return nil, fmt.Errorf("expected at least 2 values in stack, but found only %d", len(expr.Syms))
 		}
-		lhs, rhs := lhsSym.ConstValue.Float64, rhsSym.ConstValue.Float64
-		var r float64
-		switch op {
-		case types.OpPlus:
-			r = lhs + rhs
-		case types.OpMinus:
-			r = lhs - rhs
-		case types.OpMultiply:
-			r = lhs * rhs
-		case types.OpDivide:
-			r = lhs / rhs
-		case types.OpPower:
-			r = math.Pow(lhs, rhs)
-		case types.OpIf:
-			if lhs > 0 {
-				r = rhs
-			}
-		default:
-			panic("should not happened")
-		}
-		expr.Syms[len(expr.Syms)-2] = Symbol{
-			ParsedValue: internal.ParsedValue{
-				ConstValue: types.NullFloat64{
-					Valid:   true,
-					Float64: r,
-				},
-			},
-			Name: "( " + lhsSym.Name + " " + op.String() + " " + rhsSym.Name + " )",
-		}
-		expr.Syms = expr.Syms[:len(expr.Syms)-1]
+
+		expr.Ops = append(expr.Ops, op)
 	}
 	expr.evalStack = make([]float64, len(expr.Syms))
 	return expr, nil

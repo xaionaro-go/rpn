@@ -2,10 +2,13 @@ package tests_test
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/xaionaro-go/rpn"
+	callslice "github.com/xaionaro-go/rpn/implementations/callslice"
 	calltree "github.com/xaionaro-go/rpn/implementations/calltree"
 	compile "github.com/xaionaro-go/rpn/implementations/compile"
 	exprtree "github.com/xaionaro-go/rpn/implementations/exprtree"
@@ -15,6 +18,9 @@ import (
 )
 
 var implementations = map[string]func(string, types.SymbolResolver) (types.Expr, error){
+	"callslice": func(s string, resolver types.SymbolResolver) (types.Expr, error) {
+		return callslice.Parse(s, resolver)
+	},
 	"calltree": func(s string, resolver types.SymbolResolver) (types.Expr, error) {
 		return calltree.Parse(s, resolver)
 	},
@@ -26,6 +32,9 @@ var implementations = map[string]func(string, types.SymbolResolver) (types.Expr,
 	},
 	"tokenslice": func(s string, resolver types.SymbolResolver) (types.Expr, error) {
 		return tokenslice.Parse(s, resolver)
+	},
+	"default": func(s string, resolver types.SymbolResolver) (types.Expr, error) {
+		return rpn.Parse(s, resolver)
 	},
 }
 
@@ -63,7 +72,7 @@ func TestExpr(t *testing.T) {
 		})
 	}
 
-	t.Run("full_test", func(t *testing.T) {
+	t.Run("extra_tests", func(t *testing.T) {
 		for _, args := range []string{
 			"h2 1",
 			"0x2 b11",
@@ -89,7 +98,7 @@ func TestExpr(t *testing.T) {
 						resultMap[implName] = expr.Eval()
 					}
 
-					reference := resultMap["calltree"]
+					reference := resultMap["default"]
 					for _, value := range resultMap {
 						require.Equal(t, reference, value, fmt.Sprintf("'%s' -> %v", rpn, resultMap))
 					}
@@ -97,44 +106,75 @@ func TestExpr(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("random_expressions", func(t *testing.T) {
+		randGen := rand.New(rand.NewSource(0))
+		for i := 0; i < 10000; i++ {
+			exprString := randExpression(randGen)
+			resultMap := map[string]float64{}
+			for implName, impl := range implementations {
+				if implName == "compile" {
+					continue
+				}
+
+				expr, err := impl(exprString, tests.DummyResolver{T: t})
+				if err != nil {
+					resultMap[implName] = -1
+					return
+				}
+				resultMap[implName] = expr.Eval()
+			}
+			reference := resultMap["default"]
+			for _, value := range resultMap {
+				require.Equal(t, reference, value, fmt.Sprintf("'%s' -> %v", exprString, resultMap))
+			}
+		}
+	})
 }
 
-var (
-	dummyA, dummyB, dummyC, dummyD     = float64(3.5), float64(4), float64(2), float64(0)
-	dummyFuncA, dummyFuncB, dummyFuncC = func() float64 { return 3.5 }, func() float64 { return 4 }, func() float64 { return 2 }
-)
+func randExpression(randGen *rand.Rand) string {
+	valDict := []string{
+		"x0", "x1", "y", "z",
+		"0", "1", "-1", "0.5", "1e2",
+	}
+	amountOfOps := randGen.Intn(10)
+	collection := []string{
+		"",
+		valDict[randGen.Intn(len(valDict))],
+	}
+	for i := 0; i < amountOfOps; i++ {
+		collection = append(collection, (types.OpPlus + types.Op(randGen.Intn(int(types.BoundaryOp-types.OpPlus)))).String())
+		collection = append(collection, valDict[randGen.Intn(len(valDict))])
+	}
+	rand.Shuffle(len(collection), func(i, j int) {
+		collection[i], collection[j] = collection[j], collection[i]
+	})
+	return strings.Join(collection, " ")
+}
 
 func BenchmarkExpr_Eval(b *testing.B) {
-	b.Run("ideal", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			dummyD = (dummyA + dummyB) * dummyC
-		}
-	})
-	b.Run("idealFuncs", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			dummyD = (dummyFuncA() + dummyFuncB()) * dummyFuncC()
-		}
-	})
-
 	for _, enableMemoization := range []bool{true, false} {
 		b.Run(fmt.Sprintf("cache_%v", enableMemoization), func(b *testing.B) {
-			for _, exprName := range []string{"const", "variable", "tons_of_variables"} {
+			for _, exprName := range []string{"3_constant_values", "3_variables", "10_variables", "100_variables", "1000_variables", "10000_variables"} {
 				b.Run(exprName, func(b *testing.B) {
 					exprString := func() string {
 						switch exprName {
-						case "const":
+						case "3_constant_values":
 							return "b10 3.5 4 + *"
-						case "variable":
+						case "3_variables":
 							return "z x0 x1 + *"
-						case "tons_of_variables":
+						case "10_variables":
+							return strings.Repeat("z ", 10) + strings.Repeat("+ ", 9)
+						case "100_variables":
+							return strings.Repeat("z ", 100) + strings.Repeat("+ ", 99)
+						case "1000_variables":
+							return strings.Repeat("z ", 1000) + strings.Repeat("+ ", 999)
+						case "10000_variables":
 							return strings.Repeat("z ", 10000) + strings.Repeat("+ ", 9999)
 						}
 						panic("should not happen")
 					}()
 					for implName, impl := range implementations {
-						if exprName == "tons_of_variables" && implName == "compile" {
-							continue
-						}
 						expr, err := impl(exprString, tests.DummyResolver{})
 						if err != nil {
 							panic(err)

@@ -1,17 +1,23 @@
 package rpn
 
 import (
-	tokenslice "github.com/xaionaro-go/rpn/implementations/tokenslice"
+	"strings"
+
+	callslice "github.com/xaionaro-go/rpn/implementations/callslice"
+	calltree "github.com/xaionaro-go/rpn/implementations/calltree"
 	"github.com/xaionaro-go/rpn/types"
 )
 
-// Expr is the default implementation of types.Expr.
+// Expr is just an interface for a parsed expression.
 //
 // See also README.md.
-type Expr = tokenslice.Expr
+type Expr = types.Expr
 
 // Parse converts Reverse Polish Notation expression "expression" to
 // a Eval()-uatable implementation Expr.
-func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
-	return tokenslice.Parse(expression, symResolver)
+func Parse(expression string, symResolver types.SymbolResolver) (Expr, error) {
+	if len(strings.Split(expression, " ")) > 20 {
+		return callslice.Parse(expression, symResolver)
+	}
+	return calltree.Parse(expression, symResolver)
 }

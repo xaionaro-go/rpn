@@ -86,8 +86,8 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 		if len(stack) < 2 {
 			return nil, fmt.Errorf("invalid expression '%s' at part index %d: expected at least two entries in the stack", expression, partIdx)
 		}
-		rhs := stack.Pop()
-		lhs := stack.Pop()
+		rhs := *stack.Pop()
+		lhs := *stack.Pop()
 
 		switch op {
 		case types.OpPlus:

@@ -227,10 +227,7 @@ func (ops Ops) Compile(stackRaw []float64, valuesRaw []float64) (eval func() flo
 	builder.AddInstruction(ret(builder))
 
 	code := builder.Assemble()
-	if len(code) > gojit.PageSize {
-		panic("too large code")
-	}
-	b, e := gojit.Alloc(gojit.PageSize)
+	b, e := gojit.Alloc((len(code)/gojit.PageSize + 1) * gojit.PageSize)
 	if e != nil {
 		panic(e)
 	}

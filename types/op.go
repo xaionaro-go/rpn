@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"math"
 )
 
 // Op is an identifier of a single operation of an expression.
@@ -68,6 +69,30 @@ func (op Op) String() string {
 		return "if"
 	default:
 		return fmt.Sprintf("unknown_op_%d", op)
+	}
+}
+
+// Eval just executes the operation and returns the result.
+//go:nosplit
+func (op Op) Eval(lhs, rhs float64) float64 {
+	switch op {
+	case OpPlus:
+		return lhs + rhs
+	case OpMinus:
+		return lhs - rhs
+	case OpMultiply:
+		return lhs * rhs
+	case OpDivide:
+		return lhs / rhs
+	case OpPower:
+		return math.Pow(lhs, rhs)
+	case OpIf:
+		if lhs > 0 {
+			return rhs
+		}
+		return lhs
+	default:
+		panic("do not know how to evaluate op: " + op.String())
 	}
 }
 
