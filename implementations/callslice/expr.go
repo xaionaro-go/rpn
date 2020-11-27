@@ -81,7 +81,7 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 	}
 	parts := strings.Split(expression, " ")
 	values := make([]value, 0, 2)
-	for _, part := range parts {
+	for partIdx, part := range parts {
 		if part == "" {
 			continue
 		}
@@ -97,8 +97,9 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 			continue
 		}
 
-		if len(values) < 2 {
-			return nil, fmt.Errorf("expected at least 2 values in stack, but found only %d", len(values))
+		unusedSymsCount := len(values)
+		if unusedSymsCount < 2 {
+			return nil, fmt.Errorf("expected at least 2 values in stack, but found only %d (partIdx: %d; expression: '%s')", unusedSymsCount, partIdx, expression)
 		}
 
 		lhsSym := values[len(values)-2]
@@ -341,6 +342,23 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 			})
 		}
 	}
+
+	if len(values) == 1 && len(expr.RAM) == 0 {
+		// This is the case when no operators is given but just a value only
+		expr.RAM = append(expr.RAM, float64(0))
+		value := values[0]
+		switch {
+		case value.ConstValue.Valid:
+			expr.RAM[0] = value.ConstValue.Float64
+		case value.FuncValue != nil:
+			expr.CallNodes = append(expr.CallNodes, func() {
+				expr.RAM[0] = value.FuncValue()
+			})
+		default:
+			panic("should not happen")
+		}
+	}
+
 	return expr, nil
 }
 

@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"strings"
 	"testing"
@@ -88,6 +89,7 @@ func TestExpr(t *testing.T) {
 					rpn := "0x1 " + args + " " + op + " +"
 					resultMap := map[string]float64{}
 					for implName, impl := range implementations {
+
 						if (op == "^" || op == "if") && implName == "compile" {
 							continue
 						}
@@ -108,24 +110,37 @@ func TestExpr(t *testing.T) {
 	})
 
 	t.Run("random_expressions", func(t *testing.T) {
+		var exprString string
+		var expr types.Expr
+		defer func() {
+			err := recover()
+			if err == nil {
+				return
+			}
+			panic(fmt.Errorf("got panic on expression '%s' (%s:%#+v):\n%v\n", exprString, expr.String(), expr, err))
+		}()
 		randGen := rand.New(rand.NewSource(0))
 		for i := 0; i < 10000; i++ {
-			exprString := randExpression(randGen)
+			exprString = randExpression(randGen)
 			resultMap := map[string]float64{}
 			for implName, impl := range implementations {
 				if implName == "compile" {
 					continue
 				}
 
-				expr, err := impl(exprString, tests.DummyResolver{T: t})
+				var err error
+				expr, err = impl(exprString, tests.DummyResolver{T: t})
 				if err != nil {
 					resultMap[implName] = -1
-					return
+					continue
 				}
 				resultMap[implName] = expr.Eval()
 			}
 			reference := resultMap["default"]
 			for _, value := range resultMap {
+				if math.IsNaN(value) && math.IsNaN(reference) {
+					continue
+				}
 				require.Equal(t, reference, value, fmt.Sprintf("'%s' -> %v", exprString, resultMap))
 			}
 		}

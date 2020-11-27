@@ -90,7 +90,7 @@ func (op Op) Eval(lhs, rhs float64) float64 {
 		if lhs > 0 {
 			return rhs
 		}
-		return lhs
+		return 0
 	default:
 		panic("do not know how to evaluate op: " + op.String())
 	}

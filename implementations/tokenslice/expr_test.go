@@ -14,3 +14,10 @@ func TestBugCase0(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 95.5, expr.Eval(), exprString+": "+expr.String())
 }
+
+func TestBugCase1(t *testing.T) {
+	exprString := "0.5 0 -1 * x1 * y - -1 if + y 1 +  /"
+	expr, err := rpn.Parse(exprString, tests.DummyResolver{})
+	require.NoError(t, err)
+	require.Equal(t, 0.1, expr.Eval(), exprString+": "+expr.String())
+}

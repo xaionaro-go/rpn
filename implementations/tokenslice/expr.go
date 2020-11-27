@@ -98,7 +98,7 @@ func (expr *Expr) eval() float64 {
 func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 	expr := &Expr{}
 	parts := strings.Split(expression, " ")
-	for _, part := range parts {
+	for partIdx, part := range parts {
 		if part == "" {
 			continue
 		}
@@ -119,8 +119,9 @@ func Parse(expression string, symResolver types.SymbolResolver) (*Expr, error) {
 			continue
 		}
 
-		if len(expr.Syms) < 2 {
-			return nil, fmt.Errorf("expected at least 2 values in stack, but found only %d", len(expr.Syms))
+		unusedSymsCount := len(expr.Syms)*2 - len(expr.Ops)
+		if unusedSymsCount < 2 {
+			return nil, fmt.Errorf("expected at least 2 values in stack, but found only %d (partIdx: %d; expression: '%s')", unusedSymsCount, partIdx, expression)
 		}
 
 		expr.Ops = append(expr.Ops, op)
